@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Irrigation Control</title>
+</head>
+<body>
+  <h1>Irrigation Raspberry Pi</h1>
+  <button onclick="fetch('/start')">Start</button>
+  <button onclick="fetch('/stop')">Stop</button>
+  <p id="status">Status: ...</p>
+
+  <script>
+    function update() {
+      fetch("/status").then(r => r.json()).then(data => {
+        document.getElementById("status").innerText = "Status: " + data.status;
+      });
+    }
+    setInterval(update, 2000);
+    update();
+  </script>
+</body>
+</html>
