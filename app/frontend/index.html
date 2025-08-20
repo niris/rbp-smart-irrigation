@@ -2,21 +2,39 @@
 <html>
 <head>
   <title>Irrigation Control</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Irrigation Raspberry Pi</h1>
-  <button onclick="fetch('/start')">Start</button>
-  <button onclick="fetch('/stop')">Stop</button>
-  <p id="status">Status: ...</p>
+  <div style="display: flex; flex-direction: row; align-items: center; gap: 1em; margin-top: 2em;">
+    <h1 style="margin: 0;">Irrigo</h1>
+    <span style="font-size: 1.1rem; color: #555;">Water Your Plants, from Wherever You Go</span>
+  </div>
+  <div class="controls">
+    <button class="start-btn" onclick="startIrrigation()">Start</button>
+    <button class="stop-btn" onclick="stopIrrigation()">Stop</button>
+  </div>
+  <img id="water-drop" src="assets/images/water-drop.svg" alt="Water Drop" style="width:64px; height:64px;">
+  <img id="plant" src="assets/images/plant.svg" alt="Plant" >
 
   <script>
-    function update() {
-      fetch("/status").then(r => r.json()).then(data => {
-        document.getElementById("status").innerText = "Status: " + data.status;
-      });
+    const drop = document.getElementById('water-drop');
+    let dropAnimating = false;
+
+    function startIrrigation() {
+      fetch('/start');
+      if (!dropAnimating) {
+        drop.classList.add('animate-drop');
+        dropAnimating = true;
+      }
     }
-    setInterval(update, 2000);
-    update();
+
+    function stopIrrigation() {
+      fetch('/stop');
+      drop.classList.remove('animate-drop');
+      dropAnimating = false;
+    }
   </script>
 </body>
 </html>
+
