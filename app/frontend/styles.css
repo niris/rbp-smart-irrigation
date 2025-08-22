@@ -1,6 +1,6 @@
 body {
     margin: 0;
-    padding: 0;
+    padding: 2em;
     font-family: Arial, sans-serif;
     box-sizing: border-box;
     background: #f8f9fa;
@@ -14,6 +14,13 @@ h1 {
     font-size: 2rem;
     text-align: center;
 }
+.title {
+    display: flex; 
+    flex-direction: row; 
+    align-items: center; 
+    gap: 1em; 
+    margin-top: 2em;
+}
 .controls {
     display: flex;
     gap: 1em;
@@ -26,14 +33,11 @@ button {
     font-size: 1rem;
     border-radius: 0.375em;
     border: none;
-    background: #00bfff;
     color: #fff;
     cursor: pointer;
     transition: background 0.2s;
 }
-button:hover {
-    background: #0099cc;
-}
+
 .start-btn {
     background: #28a745;
 }
@@ -62,7 +66,7 @@ button:hover {
     z-index: 10;
 }
 .animate-drop {
-    animation: drop 1s linear infinite;
+    animation: drop 1s linear infinite; 
     opacity: 1;
 }
 #plant {
@@ -91,13 +95,13 @@ button:hover {
         font-size: 0.95rem;
     }
     #water-drop {
-        width: 1.375em;
-        height: 1.375em;
+        width: 1.25em;
+        height: 1.25em;
         top: 2.5em;
     }
     @keyframes drop {
         0% { top: 2.5em; opacity: 1; }
-        80% { top: 6.875em; opacity: 1; }
-        100% { top: 6.875em; opacity: 0; }
+        80% { top: 8em; opacity: 1; }
+        100% { top: 10em; opacity: 0.25; }
     }
 }

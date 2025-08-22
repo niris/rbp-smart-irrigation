@@ -6,13 +6,12 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div style="display: flex; flex-direction: row; align-items: center; gap: 1em; margin-top: 2em;">
+  <div class="title">
     <h1 style="margin: 0;">Irrigo</h1>
-    <span style="font-size: 1.1rem; color: #555;">Water Your Plants, from Wherever You Go</span>
+    <span style="font-size: 0.85rem; color: #555;">Water Your Plants, from Wherever You Go</span>
   </div>
   <div class="controls">
-    <button class="start-btn" onclick="startIrrigation()">Start</button>
-    <button class="stop-btn" onclick="stopIrrigation()">Stop</button>
+    <button id="irrigation-btn" class="start-btn" onclick="toggleIrrigation()">Start</button>
   </div>
   <img id="water-drop" src="assets/images/water-drop.svg" alt="Water Drop" style="width:64px; height:64px;">
   <img id="plant" src="assets/images/plant.svg" alt="Plant" >
@@ -21,18 +20,22 @@
     const drop = document.getElementById('water-drop');
     let dropAnimating = false;
 
-    function startIrrigation() {
-      fetch('/start');
+    function toggleIrrigation() {
+      const btn = document.getElementById('irrigation-btn');
       if (!dropAnimating) {
+        console.log('Starting irrigation');
+        fetch('/start');
         drop.classList.add('animate-drop');
         dropAnimating = true;
+        btn.className = 'stop-btn';
+        btn.textContent = 'Stop';
+      } else {
+        fetch('/stop');
+        drop.classList.remove('animate-drop');
+        dropAnimating = false;
+        btn.className = 'start-btn';
+        btn.textContent = 'Start';
       }
-    }
-
-    function stopIrrigation() {
-      fetch('/stop');
-      drop.classList.remove('animate-drop');
-      dropAnimating = false;
     }
   </script>
 </body>
