@@ -2,10 +2,19 @@ from flask import Flask, render_template, jsonify
 import RPi.GPIO as GPIO
 import threading
 import time
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = os.path.abspath(os.path.join(BASE_DIR, "../frontend"))
+STATIC_DIR = TEMPLATE_DIR 
 
 # Initialize Flask app, specify folder for HTML templates
-app = Flask(__name__, template_folder="frontend")
-
+app = Flask(
+    __name__,
+    template_folder=TEMPLATE_DIR,
+    static_folder=STATIC_DIR,
+    static_url_path=""   # makes /styles.css accessible at /styles.css
+)
 # GPIO pin configuration
 PUMP_PIN = 2
 GPIO.setmode(GPIO.BCM)
