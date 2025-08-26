@@ -1,56 +1,134 @@
 from flask import Flask, render_template, jsonify
 import RPi.GPIO as GPIO
 import threading
-import time
 import os
+import logging
+from flask import request
 
+# ---------------------------
+# Constants
+# ---------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.abspath(os.path.join(BASE_DIR, "../frontend"))
-STATIC_DIR = TEMPLATE_DIR 
+STATIC_DIR = TEMPLATE_DIR
 
-# Initialize Flask app, specify folder for HTML templates
+DEFAULT_DURATION = 10  # seconds
+# Physical pins = 11, 13, 15, 16
+PUMP_PINS = [17, 27]  # BCM pin numbers for pumps
+# TODO: add more pumps (15=22, 16=23)
+
+# ---------------------------
+# Flask app configuration
+# ---------------------------
 app = Flask(
     __name__,
     template_folder=TEMPLATE_DIR,
     static_folder=STATIC_DIR,
-    static_url_path=""   # makes /styles.css accessible at /styles.css
+    static_url_path=""
 )
-# GPIO pin configuration
-PUMP_PIN = 2
+
+# ---------------------------
+# Logging setup
+# ---------------------------
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+
+# ---------------------------
+# GPIO setup
+# ---------------------------
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(PUMP_PIN, GPIO.OUT)
-GPIO.output(PUMP_PIN, GPIO.HIGH)  # HIGH = pump off
+for pin in PUMP_PINS:
+    GPIO.setup(pin, GPIO.OUT)
+    GPIO.output(pin, GPIO.HIGH)  # OFF initially
 
-# Function to run the pump for a given duration
-def run_pump(duration):
-    GPIO.output(PUMP_PIN, GPIO.LOW)   # Turn pump ON
-    #time.sleep(duration)               # Keep it running for 'duration' seconds
-    #GPIO.output(PUMP_PIN, GPIO.HIGH)  # Turn pump OFF
+# ---------------------------
+# Helper functions
+# ---------------------------
+def run_pump(index: int, duration: int = DEFAULT_DURATION) -> None:
+    """
+    Run a pump for a given duration without blocking the Flask server.
+    """
+    if index < 0 or index >= len(PUMP_PINS):
+        logging.warning(f"Invalid pump index: {index}")
+        return
 
-# Home page route
+    pin = PUMP_PINS[index]
+    logging.info(f"Turning ON pump {index} for {duration} seconds")
+    GPIO.output(pin, GPIO.LOW)  # ON
+
+    def turn_off():
+        GPIO.output(pin, GPIO.HIGH)
+        logging.info(f"Pump {index} turned OFF after {duration} seconds")
+
+    threading.Timer(duration, turn_off).start()
+
+def stop_pump(index: int) -> None:
+    """Stop a specific pump immediately."""
+    if 0 <= index < len(PUMP_PINS):
+        GPIO.output(PUMP_PINS[index], GPIO.HIGH)
+        logging.info(f"Pump {index} stopped")
+    else:
+        logging.warning(f"Invalid pump index for stop: {index}")
+
+def stop_all_pumps() -> None:
+    for pin in PUMP_PINS:
+        GPIO.output(pin, GPIO.HIGH)
+    logging.info("All pumps stopped")
+
+# ---------------------------
+# Flask routes
+# ---------------------------
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# Start irrigation route
-@app.route("/start")
+
+@app.route("/irrigation", methods=["POST"])
 def start_irrigation():
-    # Start a thread to run the pump without blocking the server
-    threading.Thread(target=run_pump, args=(10,)).start()
-    return jsonify({"status": "on", "duration": 30})
+    data = request.get_json(force=True)
+    pump_id = data.get("id")
+    duration = data.get("duration", DEFAULT_DURATION)
+    if pump_id is None:
+        return jsonify({"error": "Missing pump ID"}), 400
 
-# Stop irrigation route
-@app.route("/stop")
+    if pump_id == 0:  # 0 = all pumps
+        for i in range(len(PUMP_PINS)):
+            run_pump(i, duration)
+        return jsonify({"pumps": "all", "status": "on", "duration": duration})
+    elif 1 <= pump_id <= len(PUMP_PINS):
+        run_pump(pump_id - 1, duration)
+        return jsonify({"pump": pump_id, "status": "on", "duration": duration})
+    else:
+        return jsonify({"error": "Invalid pump ID"}), 400
+
+@app.route("/irrigation/stop", methods=["POST"])
 def stop_irrigation():
-    GPIO.output(PUMP_PIN, GPIO.HIGH)  # Turn pump OFF
-    return jsonify({"status": "off"})
+    data = request.get_json(force=True)
+    pump_id = data.get("id", None)
+    if pump_id is None or pump_id == 0:
+        stop_all_pumps()
+        return jsonify({"pumps": "all", "status": "off"})
+    elif 1 <= pump_id <= len(PUMP_PINS):
+        stop_pump(pump_id - 1)
+        return jsonify({"pump": pump_id, "status": "off"})
+    else:
+        return jsonify({"error": "Invalid pump ID"}), 400
 
-# Status route
+
 @app.route("/status")
 def status():
-    state = GPIO.input(PUMP_PIN)
-    return jsonify({"status": "on" if state == GPIO.LOW else "off"})
+    states = {
+        f"pump_{i+1}": "on" if GPIO.input(pin) == GPIO.LOW else "off"
+        for i, pin in enumerate(PUMP_PINS)
+    }
+    return jsonify(states)
 
-# Run Flask app on all network interfaces
+# ---------------------------
+# Run Flask server
+# ---------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    try:
+        logging.info("Starting Flask server on 0.0.0.0:5000")
+        app.run(host="0.0.0.0", port=5000)
+    finally:
+        logging.info("Cleaning up GPIO pins")
+        GPIO.cleanup()

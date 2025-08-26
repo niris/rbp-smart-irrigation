@@ -73,7 +73,7 @@ button {
     position: absolute;
     margin-top: 18.75em;
     z-index: 5;
-    width: 7.5em;
+    width: 8.5em;
     height: auto;
 }
 @keyframes drop {
