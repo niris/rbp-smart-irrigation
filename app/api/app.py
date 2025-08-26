@@ -21,16 +21,15 @@ PUMP_PINS = [17, 27]  # BCM pin numbers for pumps
 # Flask app configuration
 # ---------------------------
 app = Flask(
-    __name__,
-    template_folder=TEMPLATE_DIR,
-    static_folder=STATIC_DIR,
-    static_url_path=""
+    __name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR, static_url_path=""
 )
 
 # ---------------------------
 # Logging setup
 # ---------------------------
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
 
 # ---------------------------
 # GPIO setup
@@ -39,6 +38,7 @@ GPIO.setmode(GPIO.BCM)
 for pin in PUMP_PINS:
     GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, GPIO.HIGH)  # OFF initially
+
 
 # ---------------------------
 # Helper functions
@@ -61,6 +61,7 @@ def run_pump(index: int, duration: int = DEFAULT_DURATION) -> None:
 
     threading.Timer(duration, turn_off).start()
 
+
 def stop_pump(index: int) -> None:
     """Stop a specific pump immediately."""
     if 0 <= index < len(PUMP_PINS):
@@ -69,10 +70,12 @@ def stop_pump(index: int) -> None:
     else:
         logging.warning(f"Invalid pump index for stop: {index}")
 
+
 def stop_all_pumps() -> None:
     for pin in PUMP_PINS:
         GPIO.output(pin, GPIO.HIGH)
     logging.info("All pumps stopped")
+
 
 # ---------------------------
 # Flask routes
@@ -100,6 +103,7 @@ def start_irrigation():
     else:
         return jsonify({"error": "Invalid pump ID"}), 400
 
+
 @app.route("/irrigation/stop", methods=["POST"])
 def stop_irrigation():
     data = request.get_json(force=True)
@@ -121,6 +125,7 @@ def status():
         for i, pin in enumerate(PUMP_PINS)
     }
     return jsonify(states)
+
 
 # ---------------------------
 # Run Flask server

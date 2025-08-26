@@ -1,107 +1,125 @@
 body {
-    margin: 0;
-    padding: 2em;
-    font-family: Arial, sans-serif;
-    box-sizing: border-box;
-    background: #f8f9fa;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  margin: 0;
+  padding: 2em;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box;
+  background: #f8f9fa;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 h1 {
-    margin-top: 2em;
-    font-size: 2rem;
-    text-align: center;
+  margin-top: 2em;
+  font-size: 2rem;
+  text-align: center;
 }
 .title {
-    display: flex; 
-    flex-direction: row; 
-    align-items: center; 
-    gap: 1em; 
-    margin-top: 2em;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1em;
+  margin-top: 2em;
 }
 .controls {
-    display: flex;
-    gap: 1em;
-    margin: 1em 0;
-    flex-wrap: wrap;
-    justify-content: center;
+  display: flex;
+  gap: 1em;
+  margin: 1em 0;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 button {
-    padding: 0.75em 1.5em;
-    font-size: 1rem;
-    border-radius: 0.375em;
-    border: none;
-    color: #fff;
-    cursor: pointer;
-    transition: background 0.2s;
+  padding: 0.75em 1.5em;
+  font-size: 1rem;
+  border-radius: 0.375em;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
 .start-btn {
-    background: #28a745;
+  background: #28a745;
 }
 .start-btn:hover {
-    background: #218838;
+  background: #218838;
 }
 .stop-btn {
-    background: #dc3545;
+  background: #dc3545;
 }
 .stop-btn:hover {
-    background: #b52a37;
+  background: #b52a37;
 }
 #status {
-    font-size: 1.1rem;
-    margin-bottom: 2em;
-    text-align: center;
-    word-break: break-word;
+  font-size: 1.1rem;
+  margin-bottom: 2em;
+  text-align: center;
+  word-break: break-word;
 }
 #water-drop {
-    position: absolute;
-    left: 50%;
-    margin-top: 6.25em;
-    transform: translateX(-50%);
-    opacity: 0;
-    pointer-events: none;
-    z-index: 10;
+  position: absolute;
+  left: 50%;
+  margin-top: 6.25em;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
 }
 .animate-drop {
-    animation: drop 1s linear infinite; 
-    opacity: 1;
+  animation: drop 1s linear infinite;
+  opacity: 1;
 }
 #plant {
-    position: absolute;
-    margin-top: 18.75em;
-    z-index: 5;
-    width: 8.5em;
-    height: auto;
+  position: absolute;
+  margin-top: 18.75em;
+  z-index: 5;
+  width: 8.5em;
+  height: auto;
 }
 @keyframes drop {
-    0% { top: 3.75em; opacity: 1; }
-    80% { top: 10em; opacity: 1; }
-    100% { top: 10em; opacity: 0; }
+  0% {
+    top: 3.75em;
+    opacity: 1;
+  }
+  80% {
+    top: 10em;
+    opacity: 1;
+  }
+  100% {
+    top: 10em;
+    opacity: 0;
+  }
 }
 @media (max-width: 37.5em) {
-    h1 {
-        font-size: 1.3rem;
-        margin-top: 1.25em;
+  h1 {
+    font-size: 1.3rem;
+    margin-top: 1.25em;
+  }
+  .controls {
+    gap: 0.625em;
+    margin: 1em 0;
+  }
+  button {
+    padding: 0.625em 1em;
+    font-size: 0.95rem;
+  }
+  #water-drop {
+    width: 1.25em;
+    height: 1.25em;
+    top: 2.5em;
+  }
+  @keyframes drop {
+    0% {
+      top: 2.5em;
+      opacity: 1;
     }
-    .controls {
-        gap: 0.625em;
-        margin: 1em 0;
+    80% {
+      top: 8em;
+      opacity: 1;
     }
-    button {
-        padding: 0.625em 1em;
-        font-size: 0.95rem;
+    100% {
+      top: 10em;
+      opacity: 0.25;
     }
-    #water-drop {
-        width: 1.25em;
-        height: 1.25em;
-        top: 2.5em;
-    }
-    @keyframes drop {
-        0% { top: 2.5em; opacity: 1; }
-        80% { top: 8em; opacity: 1; }
-        100% { top: 10em; opacity: 0.25; }
-    }
+  }
 }

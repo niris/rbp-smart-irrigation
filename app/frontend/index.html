@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Irrigation Control</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
   <div class="title">
     <h1 style="margin: 0;">Irrigo</h1>
@@ -14,72 +16,72 @@
     <button id="irrigation-btn" class="start-btn" onclick="toggleIrrigation()">Start</button>
   </div>
   <img id="water-drop" src="assets/images/water-drop.svg" alt="Water Drop" style="width:64px; height:64px;">
-  <img id="plant" src="assets/images/car-plant.svg" alt="Plant" >
+  <img id="plant" src="assets/images/car-plant.svg" alt="Plant">
 
-<script>
-let dropAnimating = false;
+  <script>
+    let dropAnimating = false;
 
-function toggleIrrigation() {
-    const btn = document.getElementById('irrigation-btn');
-    const drop = document.getElementById('water-drop');
+    function toggleIrrigation() {
+      const btn = document.getElementById('irrigation-btn');
+      const drop = document.getElementById('water-drop');
 
-    if (!dropAnimating) {
+      if (!dropAnimating) {
         console.log('Starting irrigation');
-        
-        fetch('/irrigation', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                id: 0,          // 0 = all pumps
-                duration: 20    // seconds
-            })
-        })
-        .then(response => response.json())
-        .then(data => { 
-          console.log('Response:', data);
-          const duration = (data.duration || 20) * 1000; 
-          // Temporarily stop the animation after the pump duration
-          // TODO: Replace this hardcoded timeout with a real-time signal from the server (callback or websocket)
-          setTimeout(() => {
-          drop.classList.remove('animate-drop');
-          dropAnimating = false;
-          btn.className = 'start-btn';
-          btn.textContent = 'Start';
-        }, duration);
-        })
-        .catch(err => console.error('Error:', err));
 
-        drop.classList.add('animate-drop'); 
+        fetch('/irrigation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            id: 0,          // 0 = all pumps
+            duration: 20    // seconds
+          })
+        })
+          .then(response => response.json())
+          .then(data => {
+            console.log('Response:', data);
+            const duration = (data.duration || 20) * 1000;
+            // Temporarily stop the animation after the pump duration
+            // TODO: Replace this hardcoded timeout with a real-time signal from the server (callback or websocket)
+            setTimeout(() => {
+              drop.classList.remove('animate-drop');
+              dropAnimating = false;
+              btn.className = 'start-btn';
+              btn.textContent = 'Start';
+            }, duration);
+          })
+          .catch(err => console.error('Error:', err));
+
+        drop.classList.add('animate-drop');
         dropAnimating = true;
-        btn.className = 'stop-btn'; 
+        btn.className = 'stop-btn';
         btn.textContent = 'Stop';
 
-    } else {
+      } else {
         console.log('Stopping irrigation');
 
         fetch('/irrigation/stop', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                id: 0  // 0 = all pumps
-            })
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            id: 0  // 0 = all pumps
+          })
         })
-        .then(response => response.json())
-        .then(data => console.log('Response:', data))
-        .catch(err => console.error('Error:', err));
+          .then(response => response.json())
+          .then(data => console.log('Response:', data))
+          .catch(err => console.error('Error:', err));
 
         drop.classList.remove('animate-drop');
         dropAnimating = false;
         btn.className = 'start-btn';
         btn.textContent = 'Start';
+      }
     }
-}
-</script>
+  </script>
 
 </body>
-</html>
 
+</html>
