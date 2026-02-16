@@ -2,18 +2,19 @@
 <html>
 
 <head>
-  <title>Irrigation Control</title>
+  <title>Irrigo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2e7d32">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
   <div class="title">
-    <h1 style="margin: 0;">Irrigo</h1>
-    <span style="font-size: 0.85rem; color: #555;">Irrigate your plants from anywhere you GO</span>
+    <h1>Irri<span class="logo-go">Go</span></h1>
+    <span class="tagline"><span class="tagline-highlight">Irri</span>gate your plants from anywhere you <span class="tagline-highlight">GO</span></span>
   </div>
-  <p id="status">Status: --</p>
-
   <div class="mode-toggle">
     <button class="mode-btn active" id="manual-tab" onclick="setMode('manual')">Manual</button>
     <button class="mode-btn" id="auto-tab" onclick="setMode('auto')">Auto</button>
@@ -21,33 +22,68 @@
 
   <!-- Pump management section -->
   <div class="pump-section">
-    <h3>Pumps</h3>
     <div class="pump-list" id="pump-list"></div>
-    <div class="pump-form">
-      <input type="text" id="pump-name" placeholder="Name">
-      <input type="number" id="pump-pin" placeholder="GPIO Pin" min="0">
-      <button onclick="addPump()">Add</button>
-    </div>
   </div>
 
-  <div id="manual-panel" class="controls">
-    <select id="manual-pump-select"></select>
-    <button class="start-btn" onclick="startIrrigation()">Start</button>
-    <button class="stop-btn" onclick="stopIrrigation()">Stop</button>
+  <div class="modal-overlay" id="pump-modal" onclick="if(event.target===this)closeAddPumpModal()">
+    <div class="modal">
+      <h3>Add Pump</h3>
+      <div class="pump-form">
+        <input type="text" id="pump-name" placeholder="Name">
+        <input type="number" id="pump-pin" placeholder="GPIO Pin" min="0">
+      </div>
+      <div class="modal-actions">
+        <button class="start-btn" onclick="addPump()">Add</button>
+        <button class="cancel-btn" onclick="closeAddPumpModal()">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <div id="auto-panel" class="schedule-panel" style="display:none;">
     <div class="schedule-list" id="schedule-list"></div>
     <div class="schedule-form">
-      <select id="sched-pump"></select>
       <input type="time" id="sched-time">
       <input type="number" id="sched-duration" placeholder="Duration (s)" min="1">
       <button onclick="addSchedule()">Add</button>
     </div>
+    <button id="scheduler-toggle" class="timer-toggle-btn" onclick="toggleScheduler()">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="13" r="8"/>
+        <path d="M12 9v4l2.5 2.5"/>
+        <path d="M12 5V3"/>
+        <path d="M10 3h4"/>
+      </svg>
+      <span id="scheduler-label">Start Timer</span>
+    </button>
   </div>
 
-  <img id="water-drop" src="assets/images/water-drop.svg" alt="Water Drop">
-  <img id="plant" src="assets/images/car-plant.svg" alt="Plant">
+  <p id="status"></p>
+
+  <div class="bottom-bar">
+    <div class="plant-area">
+      <img id="water-drop" src="assets/images/water-drop.svg" alt="Water Drop">
+      <img id="plant" src="assets/images/car-plant.svg" alt="Plant">
+    </div>
+    <div id="manual-panel" class="controls">
+      <button id="pump-toggle" class="pump-toggle-btn" onclick="togglePump()">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v6" stroke="currentColor"/>
+          <path d="M8 8h8v3a6 6 0 0 1-4 5.66A6 6 0 0 1 8 11V8z" stroke="currentColor"/>
+          <path d="M10 21h4" stroke="currentColor"/>
+          <path d="M12 17v4" stroke="currentColor"/>
+          <circle cx="18" cy="5" r="2" stroke="currentColor" id="tap-drop" opacity="0"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <button class="fab" onclick="openAddPumpModal()">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2C12 2 5 9 5 14a7 7 0 0 0 14 0c0-5-7-12-7-12z"/>
+      <line x1="9" y1="14" x2="15" y2="14"/>
+      <line x1="12" y1="11" x2="12" y2="17"/>
+    </svg>
+  </button>
 
   <script>
     const drop = document.getElementById('water-drop');
@@ -58,20 +94,53 @@
     const autoTab = document.getElementById('auto-tab');
     const scheduleList = document.getElementById('schedule-list');
     const pumpList = document.getElementById('pump-list');
-    const manualPumpSelect = document.getElementById('manual-pump-select');
-    const schedPumpSelect = document.getElementById('sched-pump');
+
+    const pumpModal = document.getElementById('pump-modal');
 
     let currentMode = 'manual';
+    let schedulerRunning = false;
+    let pumpRunning = false;
     let schedules = [];
     let pumps = [];
+    let selectedPumpId = null;
+
+    function openAddPumpModal() {
+      document.getElementById('pump-name').value = '';
+      document.getElementById('pump-pin').value = '';
+      pumpModal.classList.add('open');
+    }
+
+    function closeAddPumpModal() {
+      pumpModal.classList.remove('open');
+    }
+
+    function setStatusMsg(msg, level) {
+      statusEl.textContent = msg;
+      statusEl.className = level || '';
+    }
+
+    function updatePumpBtn() {
+      const btn = document.getElementById('pump-toggle');
+      const tapDrop = document.getElementById('tap-drop');
+      if (pumpRunning) {
+        btn.classList.add('active');
+        if (tapDrop) tapDrop.setAttribute('opacity', '1');
+      } else {
+        btn.classList.remove('active');
+        if (tapDrop) tapDrop.setAttribute('opacity', '0');
+      }
+    }
 
     function updateStatus(state) {
-      statusEl.textContent = 'Status: ' + (state === 'on' ? 'Watering' : 'Idle');
+      setStatusMsg('', '');
       if (state === 'on') {
         drop.classList.add('animate-drop');
+        pumpRunning = true;
       } else {
         drop.classList.remove('animate-drop');
+        pumpRunning = false;
       }
+      updatePumpBtn();
     }
 
     function showMode(mode) {
@@ -94,23 +163,29 @@
       return pump ? pump.name : pumpId;
     }
 
-    function populatePumpSelects() {
-      const options = pumps.map(p =>
-        '<option value="' + p.id + '">' + p.name + ' (GPIO ' + p.pin + ')</option>'
-      ).join('');
-      manualPumpSelect.innerHTML = options;
-      schedPumpSelect.innerHTML = options;
+    function selectPump(id) {
+      selectedPumpId = id;
+      document.querySelectorAll('.pump-card').forEach(card => {
+        card.classList.toggle('selected', card.dataset.pumpId === id);
+      });
     }
 
     function renderPumps() {
       if (pumps.length === 0) {
         pumpList.innerHTML = '<p class="empty-msg">No pumps configured.</p>';
+        selectedPumpId = null;
         return;
       }
+      if (!selectedPumpId || !pumps.find(p => p.id === selectedPumpId)) {
+        selectedPumpId = pumps[0].id;
+      }
       pumpList.innerHTML = pumps.map(p =>
-        '<div class="pump-item">' +
-          '<span>' + p.name + ' — GPIO ' + p.pin + '</span>' +
-          '<button class="delete-btn" onclick="deletePump(\'' + p.id + '\')">Delete</button>' +
+        '<div class="pump-card' + (p.id === selectedPumpId ? ' selected' : '') + '" data-pump-id="' + p.id + '" onclick="selectPump(\'' + p.id + '\')">' +
+          '<div class="pump-card-info">' +
+            '<span class="pump-card-name">' + p.name + '</span>' +
+            '<span class="pump-card-pin">GPIO ' + p.pin + '</span>' +
+          '</div>' +
+          '<button class="delete-btn" onclick="event.stopPropagation();deletePump(\'' + p.id + '\')">Delete</button>' +
         '</div>'
       ).join('');
     }
@@ -134,15 +209,19 @@
         .then(data => {
           pumps = data;
           renderPumps();
-          populatePumpSelects();
+
         })
-        .catch(() => {});
+        .catch(() => {
+          renderPumps();
+
+        });
     }
 
     function addPump() {
       const name = document.getElementById('pump-name').value.trim();
       const pin = parseInt(document.getElementById('pump-pin').value, 10);
-      if (!name || isNaN(pin)) return;
+      if (!name) { alert('Please enter a pump name'); return; }
+      if (isNaN(pin) || pin < 0) { alert('Please enter a valid GPIO pin'); return; }
       fetch('/pumps', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -153,11 +232,13 @@
           return r.json();
         })
         .then(() => {
-          document.getElementById('pump-name').value = '';
-          document.getElementById('pump-pin').value = '';
+          closeAddPumpModal();
           fetchPumps();
         })
-        .catch(() => {});
+        .catch(err => {
+          if (err && err.message) return;
+          alert('Failed to add pump — check server connection');
+        });
     }
 
     function deletePump(id) {
@@ -168,7 +249,7 @@
           pumps = data.pumps || [];
           schedules = data.schedules || [];
           renderPumps();
-          populatePumpSelects();
+
           renderSchedules();
         })
         .catch(() => {});
@@ -183,12 +264,13 @@
           pumps = data.pumps || [];
           renderSchedules();
           renderPumps();
-          populatePumpSelects();
+
         })
         .catch(() => {});
     }
 
     function setMode(mode) {
+      showMode(mode);
       fetch('/mode', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -204,11 +286,11 @@
     }
 
     function addSchedule() {
-      const pumpId = schedPumpSelect.value;
+      if (!selectedPumpId) { setStatusMsg('Select a pump first', 'warning'); return; }
       const time = document.getElementById('sched-time').value;
       const duration = parseInt(document.getElementById('sched-duration').value, 10);
-      if (!pumpId || !time || !duration || duration < 1) return;
-      const updated = schedules.concat([{time: time, duration: duration, pump_id: pumpId}]);
+      if (!time || !duration || duration < 1) return;
+      const updated = schedules.concat([{time: time, duration: duration, pump_id: selectedPumpId}]);
       fetch('/schedule', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -243,37 +325,78 @@
             fetchMode();
           }
         })
-        .catch(() => { statusEl.textContent = 'Status: unable to reach server'; });
+        .catch(() => { setStatusMsg('Unable to reach server', 'error'); });
     }
 
-    function startIrrigation() {
-      const pumpId = manualPumpSelect.value;
-      fetch('/start', {
+    function togglePump() {
+      if (!selectedPumpId) { setStatusMsg('Select a pump first', 'warning'); return; }
+      const endpoint = pumpRunning ? '/stop' : '/start';
+      fetch(endpoint, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({pump_id: pumpId})
+        body: JSON.stringify({pump_id: selectedPumpId})
       })
         .then(r => r.json())
         .then(data => updateStatus(data.status))
-        .catch(() => { statusEl.textContent = 'Status: failed to start'; });
+        .catch(() => { setStatusMsg('Failed to ' + (pumpRunning ? 'stop' : 'start'), 'warning'); });
     }
 
-    function stopIrrigation() {
-      const pumpId = manualPumpSelect.value;
-      fetch('/stop', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({pump_id: pumpId})
-      })
-        .then(r => r.json())
-        .then(data => updateStatus(data.status))
-        .catch(() => { statusEl.textContent = 'Status: failed to stop'; });
+    function updateSchedulerBtn() {
+      const btn = document.getElementById('scheduler-toggle');
+      const label = document.getElementById('scheduler-label');
+      if (schedulerRunning) {
+        btn.classList.add('active');
+        label.textContent = 'Stop Timer';
+      } else {
+        btn.classList.remove('active');
+        label.textContent = 'Start Timer';
+      }
+    }
+
+    function toggleScheduler() {
+      if (schedulerRunning) {
+        // Stop all scheduled pumps
+        fetch('/stop', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({})
+        })
+          .then(r => r.json())
+          .then(data => {
+            updateStatus(data.status);
+            schedulerRunning = false;
+            updateSchedulerBtn();
+            // Switch back to manual to stop the scheduler loop
+            setMode('manual');
+            showMode('auto');
+          })
+          .catch(() => { setStatusMsg('Failed to stop', 'warning'); });
+      } else {
+        // Start auto mode on the server
+        fetch('/mode', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({mode: 'auto'})
+        })
+          .then(r => r.json())
+          .then(data => {
+            schedules = data.schedules || [];
+            renderSchedules();
+            schedulerRunning = true;
+            updateSchedulerBtn();
+          })
+          .catch(() => { setStatusMsg('Failed to start timer', 'warning'); });
+      }
     }
 
     // Initial load
     fetchStatus();
     fetchMode();
     setInterval(fetchStatus, 5000);
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
   </script>
 
 </body>

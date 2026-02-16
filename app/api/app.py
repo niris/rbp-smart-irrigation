@@ -192,8 +192,11 @@ def add_pump():
     data["pumps"].append(new_pump)
     save_schedule(data)
     # Setup GPIO for the new pin
-    GPIO.setup(pin, GPIO.OUT)
-    GPIO.output(pin, GPIO.HIGH)
+    try:
+        GPIO.setup(pin, GPIO.OUT)
+        GPIO.output(pin, GPIO.HIGH)
+    except Exception as e:
+        logging.warning(f"GPIO setup failed for pin {pin}: {e}")
     logging.info(f"Added pump '{name}' on pin {pin}")
     return jsonify(new_pump), 201
 
