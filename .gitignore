@@ -1,5 +1,6 @@
 *.pyc
 __pycache__/
+*.pyo
 *.env
 *.log
 .vscode/
@@ -9,4 +10,8 @@ __pycache__/
 *.tmp
 *.cache
 *.DS_Store
-
+venv/
+.venv/
+*.egg-info/
+dist/
+build/

@@ -9,11 +9,6 @@ body {
   flex-direction: column;
   align-items: center;
 }
-h1 {
-  margin-top: 2em;
-  font-size: 2rem;
-  text-align: center;
-}
 .title {
   display: flex;
   flex-direction: row;
@@ -21,10 +16,21 @@ h1 {
   gap: 1em;
   margin-top: 2em;
 }
+h1 {
+  margin-top: 2em;
+  font-size: 2rem;
+  text-align: center;
+}
+#status {
+  font-size: 1.1rem;
+  margin: 0.5em 0 0;
+  text-align: center;
+  color: #555;
+}
 .controls {
   display: flex;
   gap: 1em;
-  margin: 1em 0;
+  margin: 2em 0;
   flex-wrap: wrap;
   justify-content: center;
 }
@@ -50,28 +56,25 @@ button {
 .stop-btn:hover {
   background: #b52a37;
 }
-#status {
-  font-size: 1.1rem;
-  margin-bottom: 2em;
-  text-align: center;
-  word-break: break-word;
-}
 #water-drop {
   position: absolute;
   left: 50%;
-  margin-top: 6.25em;
+  top: 3.75em;
   transform: translateX(-50%);
+  width: 64px;
+  height: 64px;
   opacity: 0;
   pointer-events: none;
   z-index: 10;
 }
-.animate-drop {
+#water-drop.animate-drop {
   animation: drop 1s linear infinite;
-  opacity: 1;
 }
 #plant {
   position: absolute;
-  margin-top: 18.75em;
+  top: 18.75em;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 5;
   width: 8.5em;
   height: auto;
@@ -90,6 +93,147 @@ button {
     opacity: 0;
   }
 }
+.mode-toggle {
+  display: flex;
+  gap: 0;
+  margin: 1em 0 0;
+}
+.mode-btn {
+  padding: 0.5em 1.5em;
+  font-size: 1rem;
+  border: 2px solid #00bfff;
+  background: #fff;
+  color: #00bfff;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.mode-btn:first-child {
+  border-radius: 0.375em 0 0 0.375em;
+}
+.mode-btn:last-child {
+  border-radius: 0 0.375em 0.375em 0;
+  border-left: none;
+}
+.mode-btn.active {
+  background: #00bfff;
+  color: #fff;
+}
+.mode-btn:hover:not(.active) {
+  background: #e6f7ff;
+}
+.schedule-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1em;
+  margin: 1.5em 0;
+  width: 100%;
+  max-width: 24em;
+}
+.schedule-list {
+  width: 100%;
+}
+.schedule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 0.375em;
+  padding: 0.5em 0.75em;
+  margin-bottom: 0.5em;
+}
+.schedule-item span {
+  font-size: 1rem;
+  color: #333;
+}
+.delete-btn {
+  padding: 0.3em 0.75em;
+  font-size: 0.85rem;
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 0.25em;
+  cursor: pointer;
+}
+.delete-btn:hover {
+  background: #b52a37;
+}
+.empty-msg {
+  text-align: center;
+  color: #999;
+  font-size: 0.95rem;
+}
+.schedule-form {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.schedule-form input {
+  padding: 0.5em;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.375em;
+  width: 8em;
+}
+.schedule-form input[type="number"] {
+  width: 7em;
+}
+select {
+  padding: 0.5em;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.375em;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+}
+.pump-section {
+  width: 100%;
+  max-width: 24em;
+  margin: 1.5em 0 0;
+  text-align: center;
+}
+.pump-section h3 {
+  margin: 0 0 0.5em;
+  font-size: 1.1rem;
+  color: #333;
+}
+.pump-list {
+  width: 100%;
+}
+.pump-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 0.375em;
+  padding: 0.5em 0.75em;
+  margin-bottom: 0.5em;
+}
+.pump-item span {
+  font-size: 1rem;
+  color: #333;
+}
+.pump-form {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.5em;
+}
+.pump-form input {
+  padding: 0.5em;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.375em;
+  width: 7em;
+}
+
 @media (max-width: 37.5em) {
   h1 {
     font-size: 1.3rem;

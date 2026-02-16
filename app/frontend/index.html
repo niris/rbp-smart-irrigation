@@ -12,74 +12,268 @@
     <h1 style="margin: 0;">Irrigo</h1>
     <span style="font-size: 0.85rem; color: #555;">Irrigate your plants from anywhere you GO</span>
   </div>
-  <div class="controls">
-    <button id="irrigation-btn" class="start-btn" onclick="toggleIrrigation()">Start</button>
+  <p id="status">Status: --</p>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="manual-tab" onclick="setMode('manual')">Manual</button>
+    <button class="mode-btn" id="auto-tab" onclick="setMode('auto')">Auto</button>
   </div>
-  <img id="water-drop" src="assets/images/water-drop.svg" alt="Water Drop" style="width:64px; height:64px;">
+
+  <!-- Pump management section -->
+  <div class="pump-section">
+    <h3>Pumps</h3>
+    <div class="pump-list" id="pump-list"></div>
+    <div class="pump-form">
+      <input type="text" id="pump-name" placeholder="Name">
+      <input type="number" id="pump-pin" placeholder="GPIO Pin" min="0">
+      <button onclick="addPump()">Add</button>
+    </div>
+  </div>
+
+  <div id="manual-panel" class="controls">
+    <select id="manual-pump-select"></select>
+    <button class="start-btn" onclick="startIrrigation()">Start</button>
+    <button class="stop-btn" onclick="stopIrrigation()">Stop</button>
+  </div>
+
+  <div id="auto-panel" class="schedule-panel" style="display:none;">
+    <div class="schedule-list" id="schedule-list"></div>
+    <div class="schedule-form">
+      <select id="sched-pump"></select>
+      <input type="time" id="sched-time">
+      <input type="number" id="sched-duration" placeholder="Duration (s)" min="1">
+      <button onclick="addSchedule()">Add</button>
+    </div>
+  </div>
+
+  <img id="water-drop" src="assets/images/water-drop.svg" alt="Water Drop">
   <img id="plant" src="assets/images/car-plant.svg" alt="Plant">
 
   <script>
-    let dropAnimating = false;
+    const drop = document.getElementById('water-drop');
+    const statusEl = document.getElementById('status');
+    const manualPanel = document.getElementById('manual-panel');
+    const autoPanel = document.getElementById('auto-panel');
+    const manualTab = document.getElementById('manual-tab');
+    const autoTab = document.getElementById('auto-tab');
+    const scheduleList = document.getElementById('schedule-list');
+    const pumpList = document.getElementById('pump-list');
+    const manualPumpSelect = document.getElementById('manual-pump-select');
+    const schedPumpSelect = document.getElementById('sched-pump');
 
-    function toggleIrrigation() {
-      const btn = document.getElementById('irrigation-btn');
-      const drop = document.getElementById('water-drop');
+    let currentMode = 'manual';
+    let schedules = [];
+    let pumps = [];
 
-      if (!dropAnimating) {
-        console.log('Starting irrigation');
-
-        fetch('/irrigation', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            id: 0,          // 0 = all pumps
-            duration: 20    // seconds
-          })
-        })
-          .then(response => response.json())
-          .then(data => {
-            console.log('Response:', data);
-            const duration = (data.duration || 20) * 1000;
-            // Temporarily stop the animation after the pump duration
-            // TODO: Replace this hardcoded timeout with a real-time signal from the server (callback or websocket)
-            setTimeout(() => {
-              drop.classList.remove('animate-drop');
-              dropAnimating = false;
-              btn.className = 'start-btn';
-              btn.textContent = 'Start';
-            }, duration);
-          })
-          .catch(err => console.error('Error:', err));
-
+    function updateStatus(state) {
+      statusEl.textContent = 'Status: ' + (state === 'on' ? 'Watering' : 'Idle');
+      if (state === 'on') {
         drop.classList.add('animate-drop');
-        dropAnimating = true;
-        btn.className = 'stop-btn';
-        btn.textContent = 'Stop';
-
       } else {
-        console.log('Stopping irrigation');
-
-        fetch('/irrigation/stop', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            id: 0  // 0 = all pumps
-          })
-        })
-          .then(response => response.json())
-          .then(data => console.log('Response:', data))
-          .catch(err => console.error('Error:', err));
-
         drop.classList.remove('animate-drop');
-        dropAnimating = false;
-        btn.className = 'start-btn';
-        btn.textContent = 'Start';
       }
     }
+
+    function showMode(mode) {
+      currentMode = mode;
+      if (mode === 'manual') {
+        manualPanel.style.display = '';
+        autoPanel.style.display = 'none';
+        manualTab.classList.add('active');
+        autoTab.classList.remove('active');
+      } else {
+        manualPanel.style.display = 'none';
+        autoPanel.style.display = '';
+        manualTab.classList.remove('active');
+        autoTab.classList.add('active');
+      }
+    }
+
+    function getPumpName(pumpId) {
+      const pump = pumps.find(p => p.id === pumpId);
+      return pump ? pump.name : pumpId;
+    }
+
+    function populatePumpSelects() {
+      const options = pumps.map(p =>
+        '<option value="' + p.id + '">' + p.name + ' (GPIO ' + p.pin + ')</option>'
+      ).join('');
+      manualPumpSelect.innerHTML = options;
+      schedPumpSelect.innerHTML = options;
+    }
+
+    function renderPumps() {
+      if (pumps.length === 0) {
+        pumpList.innerHTML = '<p class="empty-msg">No pumps configured.</p>';
+        return;
+      }
+      pumpList.innerHTML = pumps.map(p =>
+        '<div class="pump-item">' +
+          '<span>' + p.name + ' — GPIO ' + p.pin + '</span>' +
+          '<button class="delete-btn" onclick="deletePump(\'' + p.id + '\')">Delete</button>' +
+        '</div>'
+      ).join('');
+    }
+
+    function renderSchedules() {
+      if (schedules.length === 0) {
+        scheduleList.innerHTML = '<p class="empty-msg">No schedules yet.</p>';
+        return;
+      }
+      scheduleList.innerHTML = schedules.map((s, i) =>
+        '<div class="schedule-item">' +
+          '<span>' + s.time + ' — ' + s.duration + 's — ' + getPumpName(s.pump_id) + '</span>' +
+          '<button class="delete-btn" onclick="deleteSchedule(' + i + ')">Delete</button>' +
+        '</div>'
+      ).join('');
+    }
+
+    function fetchPumps() {
+      fetch('/pumps')
+        .then(r => r.json())
+        .then(data => {
+          pumps = data;
+          renderPumps();
+          populatePumpSelects();
+        })
+        .catch(() => {});
+    }
+
+    function addPump() {
+      const name = document.getElementById('pump-name').value.trim();
+      const pin = parseInt(document.getElementById('pump-pin').value, 10);
+      if (!name || isNaN(pin)) return;
+      fetch('/pumps', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: name, pin: pin})
+      })
+        .then(r => {
+          if (!r.ok) return r.json().then(d => { alert(d.error); throw new Error(); });
+          return r.json();
+        })
+        .then(() => {
+          document.getElementById('pump-name').value = '';
+          document.getElementById('pump-pin').value = '';
+          fetchPumps();
+        })
+        .catch(() => {});
+    }
+
+    function deletePump(id) {
+      if (!confirm('Delete this pump and its schedules?')) return;
+      fetch('/pumps/' + id, {method: 'DELETE'})
+        .then(r => r.json())
+        .then(data => {
+          pumps = data.pumps || [];
+          schedules = data.schedules || [];
+          renderPumps();
+          populatePumpSelects();
+          renderSchedules();
+        })
+        .catch(() => {});
+    }
+
+    function fetchMode() {
+      fetch('/mode')
+        .then(r => r.json())
+        .then(data => {
+          showMode(data.mode);
+          schedules = data.schedules || [];
+          pumps = data.pumps || [];
+          renderSchedules();
+          renderPumps();
+          populatePumpSelects();
+        })
+        .catch(() => {});
+    }
+
+    function setMode(mode) {
+      fetch('/mode', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({mode: mode})
+      })
+        .then(r => r.json())
+        .then(data => {
+          showMode(data.mode);
+          schedules = data.schedules || [];
+          renderSchedules();
+        })
+        .catch(() => {});
+    }
+
+    function addSchedule() {
+      const pumpId = schedPumpSelect.value;
+      const time = document.getElementById('sched-time').value;
+      const duration = parseInt(document.getElementById('sched-duration').value, 10);
+      if (!pumpId || !time || !duration || duration < 1) return;
+      const updated = schedules.concat([{time: time, duration: duration, pump_id: pumpId}]);
+      fetch('/schedule', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({schedules: updated})
+      })
+        .then(r => r.json())
+        .then(data => {
+          schedules = data.schedules || [];
+          renderSchedules();
+          document.getElementById('sched-time').value = '';
+          document.getElementById('sched-duration').value = '';
+        })
+        .catch(() => {});
+    }
+
+    function deleteSchedule(index) {
+      fetch('/schedule/' + index, {method: 'DELETE'})
+        .then(r => r.json())
+        .then(data => {
+          schedules = data.schedules || [];
+          renderSchedules();
+        })
+        .catch(() => {});
+    }
+
+    function fetchStatus() {
+      fetch('/status')
+        .then(r => r.json())
+        .then(data => {
+          updateStatus(data.status);
+          if (data.mode && data.mode !== currentMode) {
+            fetchMode();
+          }
+        })
+        .catch(() => { statusEl.textContent = 'Status: unable to reach server'; });
+    }
+
+    function startIrrigation() {
+      const pumpId = manualPumpSelect.value;
+      fetch('/start', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({pump_id: pumpId})
+      })
+        .then(r => r.json())
+        .then(data => updateStatus(data.status))
+        .catch(() => { statusEl.textContent = 'Status: failed to start'; });
+    }
+
+    function stopIrrigation() {
+      const pumpId = manualPumpSelect.value;
+      fetch('/stop', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({pump_id: pumpId})
+      })
+        .then(r => r.json())
+        .then(data => updateStatus(data.status))
+        .catch(() => { statusEl.textContent = 'Status: failed to stop'; });
+    }
+
+    // Initial load
+    fetchStatus();
+    fetchMode();
+    setInterval(fetchStatus, 5000);
   </script>
 
 </body>
